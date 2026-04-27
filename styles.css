@@ -99,3 +99,7 @@ h1 {
 .btn-danger:hover {
   background: var(--danger-hover);
 }
+
+.status.translating {
+  color: #67c1ff;
+}

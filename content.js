@@ -1,6 +1,7 @@
 (() => {
   const CONTAINER_ID = 'live-translator-subtitle-box';
-  const TEXT_ID = 'live-translator-subtitle-text';
+  const EN_TEXT_ID = 'live-translator-subtitle-en';
+  const ZH_TEXT_ID = 'live-translator-subtitle-zh';
 
   function injectSubtitleBox() {
     if (document.getElementById(CONTAINER_ID)) {
@@ -10,52 +11,65 @@
     const container = document.createElement('section');
     container.id = CONTAINER_ID;
     container.style.position = 'fixed';
-    container.style.right = '20px';
-    container.style.bottom = '20px';
+    container.style.left = '50%';
+    container.style.bottom = '32px';
+    container.style.transform = 'translateX(-50%)';
     container.style.zIndex = '2147483647';
-    container.style.width = 'min(420px, calc(100vw - 40px))';
-    container.style.background = 'rgba(15, 18, 28, 0.82)';
-    container.style.backdropFilter = 'blur(8px)';
-    container.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+    container.style.width = 'min(900px, calc(100vw - 48px))';
+    container.style.background = 'rgba(0, 0, 0, 0.65)';
     container.style.borderRadius = '12px';
-    container.style.boxShadow = '0 14px 28px rgba(0, 0, 0, 0.35)';
-    container.style.color = '#f5f7ff';
+    container.style.padding = '16px 18px';
+    container.style.color = '#ffffff';
     container.style.fontFamily = "'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-    container.style.padding = '12px 14px';
+    container.style.textAlign = 'center';
+    container.style.pointerEvents = 'none';
 
-    const title = document.createElement('h2');
-    title.textContent = 'Live Translator';
-    title.style.margin = '0 0 8px';
-    title.style.fontSize = '14px';
-    title.style.fontWeight = '700';
-    title.style.color = '#d6dcff';
+    const enText = document.createElement('p');
+    enText.id = EN_TEXT_ID;
+    enText.textContent = 'Listening...';
+    enText.style.margin = '0 0 8px';
+    enText.style.fontSize = '30px';
+    enText.style.fontWeight = '700';
+    enText.style.lineHeight = '1.25';
 
-    const text = document.createElement('p');
-    text.id = TEXT_ID;
-    text.textContent = 'Waiting for translation...';
-    text.style.margin = '0';
-    text.style.fontSize = '14px';
-    text.style.lineHeight = '1.5';
-    text.style.color = '#ffffff';
+    const zhText = document.createElement('p');
+    zhText.id = ZH_TEXT_ID;
+    zhText.textContent = '正在聆聽...';
+    zhText.style.margin = '0';
+    zhText.style.fontSize = '28px';
+    zhText.style.fontWeight = '600';
+    zhText.style.lineHeight = '1.25';
+    zhText.style.color = '#d5e8ff';
 
-    container.appendChild(title);
-    container.appendChild(text);
+    container.appendChild(enText);
+    container.appendChild(zhText);
     document.body.appendChild(container);
+
+    console.log('[content] Subtitle box injected');
   }
 
-  function updateSubtitle(newText) {
+  function updateSubtitle(english, chinese) {
     injectSubtitleBox();
-    const textElement = document.getElementById(TEXT_ID);
-    if (textElement) {
-      textElement.textContent = newText;
+
+    const englishElement = document.getElementById(EN_TEXT_ID);
+    const chineseElement = document.getElementById(ZH_TEXT_ID);
+
+    if (englishElement) {
+      englishElement.textContent = english || 'Listening...';
     }
+
+    if (chineseElement) {
+      chineseElement.textContent = chinese || '正在聆聽...';
+    }
+
+    console.log('[content] Subtitle updated:', { english, chinese });
   }
 
   injectSubtitleBox();
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'UPDATE_SUBTITLE') {
-      updateSubtitle(message.text || 'Waiting for translation...');
+      updateSubtitle(message.english, message.chinese);
     }
   });
 })();
