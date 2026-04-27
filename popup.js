@@ -27,6 +27,15 @@ function setStatus(status, errorMessage = '') {
   }
 }
 
+async function ensureGoogleApiKey() {
+  const { googleApiKey } = await chrome.storage.local.get('googleApiKey');
+  if (!googleApiKey) {
+    setStatus('Error', 'Missing Google API Key');
+    return false;
+  }
+  return true;
+}
+
 async function refreshStatus() {
   const response = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
   if (!response?.ok) {
@@ -47,6 +56,11 @@ startBtn.addEventListener('click', async () => {
   setStatus('Capturing');
 
   try {
+    const hasKey = await ensureGoogleApiKey();
+    if (!hasKey) {
+      return;
+    }
+
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!tab?.id) {

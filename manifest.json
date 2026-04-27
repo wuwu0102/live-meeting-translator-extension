@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Live Meeting Translator",
   "version": "2.0.0",
-  "description": "Chrome extension for real-time bilingual meeting subtitles using OpenAI transcription and translation",
+  "description": "Chrome extension for real-time bilingual meeting subtitles using Google Speech-to-Text and Google Translate",
   "permissions": [
     "tabCapture",
     "activeTab",
@@ -12,7 +12,8 @@
   ],
   "host_permissions": [
     "<all_urls>",
-    "https://api.openai.com/*"
+    "https://speech.googleapis.com/*",
+    "https://translation.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js"

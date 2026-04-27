@@ -48,9 +48,9 @@ async function ensureOffscreenDocument() {
 }
 
 async function startCapture(tabId) {
-  const { openaiApiKey } = await chrome.storage.local.get('openaiApiKey');
-  if (!openaiApiKey) {
-    throw new Error('Missing OpenAI API Key');
+  const { googleApiKey } = await chrome.storage.local.get('googleApiKey');
+  if (!googleApiKey) {
+    throw new Error('Missing Google API Key');
   }
 
   await ensureContentScript(tabId);

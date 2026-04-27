@@ -24,67 +24,95 @@ async function reportError(error, tabId = activeTabId) {
 }
 
 async function fetchApiKey() {
-  const { openaiApiKey } = await chrome.storage.local.get('openaiApiKey');
-  if (!openaiApiKey) {
-    throw new Error('Missing OpenAI API Key');
+  const { googleApiKey } = await chrome.storage.local.get('googleApiKey');
+  if (!googleApiKey) {
+    throw new Error('Missing Google API Key');
   }
-  return openaiApiKey;
+  return googleApiKey;
 }
 
-async function transcribeAudio(blob, apiKey) {
-  const formData = new FormData();
-  formData.append('model', 'gpt-4o-mini-transcribe');
-  formData.append('file', new File([blob], 'audio.webm', { type: blob.type || 'audio/webm' }));
-  formData.append('response_format', 'json');
-  formData.append('language', 'en');
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: formData
+    reader.onloadend = () => {
+      try {
+        const dataUrl = String(reader.result || '');
+        const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+        resolve(base64);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = () => {
+      reject(reader.error || new Error('Failed to read audio blob'));
+    };
+
+    reader.readAsDataURL(blob);
   });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Transcription failed (${response.status}): ${errText}`);
-  }
-
-  const data = await response.json();
-  return (data.text || '').trim();
 }
 
-async function translateToTraditionalChinese(english, apiKey) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function transcribeWithGoogle(base64Audio, apiKey) {
+  const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a professional real-time meeting interpreter. Translate English into natural Traditional Chinese. Only output the translation.'
-        },
-        {
-          role: 'user',
-          content: english
-        }
-      ]
+      config: {
+        encoding: 'WEBM_OPUS',
+        sampleRateHertz: 48000,
+        languageCode: 'en-US',
+        enableAutomaticPunctuation: true,
+        model: 'latest_long'
+      },
+      audio: {
+        content: base64Audio
+      }
     })
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Translation failed (${response.status}): ${errText}`);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.error) {
+    const errorMessage = data?.error?.message || `Speech-to-Text failed (${response.status})`;
+    throw new Error(errorMessage);
   }
 
-  const data = await response.json();
-  return (data.choices?.[0]?.message?.content || '').trim();
+  const transcript = data?.results?.[0]?.alternatives?.[0]?.transcript || '';
+  return transcript.trim();
+}
+
+function decodeHtmlEntities(text) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
+async function translateWithGoogle(text, apiKey) {
+  const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(apiKey)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      q: text,
+      source: 'en',
+      target: 'zh-TW',
+      format: 'text'
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.error) {
+    const errorMessage = data?.error?.message || `Translation failed (${response.status})`;
+    throw new Error(errorMessage);
+  }
+
+  const translatedText = data?.data?.translations?.[0]?.translatedText || '';
+  return decodeHtmlEntities(translatedText).trim();
 }
 
 async function processChunk(blob) {
@@ -104,27 +132,40 @@ async function processChunk(blob) {
     await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STATUS', status: 'Translating' });
 
     const apiKey = await fetchApiKey();
-    const english = await transcribeAudio(blob, apiKey);
-    logStage('transcribed', english);
+    const base64Audio = await blobToBase64(blob);
+    const transcript = await transcribeWithGoogle(base64Audio, apiKey);
+    logStage('transcribed', transcript);
 
-    if (!english) {
+    if (!transcript) {
       return;
     }
 
-    const chinese = await translateToTraditionalChinese(english, apiKey);
-    logStage('translated', chinese);
+    const translatedText = await translateWithGoogle(transcript, apiKey);
+    logStage('translated', translatedText);
 
     await chrome.runtime.sendMessage({
       type: 'TRANSCRIPTION_RESULT',
       tabId: activeTabId,
-      english,
-      chinese
+      english: transcript,
+      chinese: translatedText
     });
   } catch (error) {
     await reportError(error);
   } finally {
     isProcessing = false;
   }
+}
+
+function getRecorderOptions() {
+  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+    return { mimeType: 'audio/webm;codecs=opus' };
+  }
+
+  if (MediaRecorder.isTypeSupported('audio/webm')) {
+    return { mimeType: 'audio/webm' };
+  }
+
+  return undefined;
 }
 
 async function stopCapture() {
@@ -171,11 +212,15 @@ async function startCapture(streamId, tabId) {
   sourceNode = audioContext.createMediaStreamSource(currentStream);
   sourceNode.connect(audioContext.destination);
 
-  const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : undefined;
+  const options = getRecorderOptions();
   mediaRecorder = new MediaRecorder(currentStream, options);
 
   mediaRecorder.ondataavailable = async (event) => {
-    await processChunk(event.data);
+    try {
+      await processChunk(event.data);
+    } catch (error) {
+      await reportError(error);
+    }
   };
 
   mediaRecorder.onerror = async (event) => {
