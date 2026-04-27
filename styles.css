@@ -1,0 +1,101 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1220;
+  --panel: #171b2d;
+  --text: #f0f3ff;
+  --muted: #9aa3c7;
+  --primary: #6a7bff;
+  --primary-hover: #7f8dff;
+  --danger: #ff5d7a;
+  --danger-hover: #ff6f89;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.popup-body {
+  margin: 0;
+  min-width: 320px;
+  background: radial-gradient(circle at top right, #1f2550 0%, var(--bg) 50%);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--text);
+}
+
+.panel {
+  padding: 18px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.status-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status {
+  margin: 4px 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.status.idle {
+  color: #c7cfed;
+}
+
+.status.capturing {
+  color: #4fe58a;
+}
+
+.status.stopped {
+  color: #ff9ab0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+}
