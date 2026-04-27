@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Meeting Translator Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="app-body options-body">
+    <main class="panel settings-panel">
+      <h1>Live Meeting Translator Settings</h1>
+
+      <label class="input-label" for="apiKeyInput">OpenAI API Key</label>
+      <input id="apiKeyInput" class="text-input" type="password" autocomplete="off" placeholder="sk-..." />
+
+      <div class="actions">
+        <button id="saveBtn" class="btn btn-primary">Save</button>
+        <button id="clearBtn" class="btn btn-danger">Clear</button>
+      </div>
+
+      <p id="statusText" class="status idle">Idle</p>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>

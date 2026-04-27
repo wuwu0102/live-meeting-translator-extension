@@ -1,14 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Live Meeting Translator",
-  "version": "1.0.0",
-  "description": "Chrome extension for live meeting audio translation subtitles",
-  "permissions": ["tabCapture", "activeTab", "storage", "scripting"],
-  "host_permissions": ["<all_urls>"],
+  "version": "2.0.0",
+  "description": "Chrome extension for real-time bilingual meeting subtitles using OpenAI transcription and translation",
+  "permissions": [
+    "tabCapture",
+    "activeTab",
+    "storage",
+    "scripting",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   },
-  "background": {
-    "service_worker": "background.js"
-  }
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content.js",
+        "styles.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "minimum_chrome_version": "116"
 }
