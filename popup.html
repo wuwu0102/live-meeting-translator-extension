@@ -6,15 +6,20 @@
     <title>Live Meeting Translator</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="popup-body">
+  <body class="app-body popup-body">
     <main class="panel">
       <h1>Live Meeting Translator</h1>
       <p class="status-label">Status</p>
       <p id="statusText" class="status idle">Idle</p>
-      <div class="actions">
+
+      <div class="actions vertical">
         <button id="startBtn" class="btn btn-primary">Start Translation</button>
         <button id="stopBtn" class="btn btn-danger">Stop</button>
+        <button id="settingsBtn" class="btn btn-secondary">Open Settings</button>
       </div>
+
+      <p class="hint">Open a YouTube, Google Meet, or Teams web tab, then press Start.</p>
+      <p id="errorText" class="error-text" hidden></p>
     </main>
 
     <script src="popup.js"></script>

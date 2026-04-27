@@ -1,24 +1,37 @@
-# Live Meeting Translator Extension
+# Live Meeting Translator Extension v2
 
-This repository contains a **Chrome Extension (Manifest V3)** prototype for real-time meeting translation subtitles.
+This project is a Chrome Extension (Manifest V3) for real-time bilingual subtitles in web meetings.
 
-## Current v1 Features
+## Current Features
 
-- Capture audio from the current Chrome tab.
-- Keep the tab audio audible by routing captured audio back to speakers.
-- Display a floating subtitle box at the bottom-right corner of the current page.
+- Chrome tab audio capture (current active tab).
+- Offscreen audio processing pipeline.
+- OpenAI transcription API integration (`gpt-4o-mini-transcribe`).
+- English to Traditional Chinese translation (`gpt-4o-mini`).
+- Floating bilingual subtitles (English + Traditional Chinese) at the bottom center of the webpage.
+- Persistent capture architecture with MV3 service worker + offscreen document + content script (capture keeps running even if popup closes).
 
-## How to Test
+## Usage
 
 1. Open `chrome://extensions/` in Chrome.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select this project folder.
-5. Open YouTube or a web-based meeting page and test the extension popup.
+4. Select this repository folder.
+5. Open extension **Options** and input your OpenAI API key.
+6. Open a YouTube, Google Meet, or Teams web tab.
+7. Click **Start Translation** in the popup.
 
-## Next Phase
+## Architecture
 
-The next phase will add:
+- `background.js`: Capture lifecycle orchestration and message routing.
+- `offscreen.js`: Audio stream capture, chunk recording, transcription, and translation API calls.
+- `content.js`: Floating subtitle UI renderer.
+- `popup.*`: Control panel (start/stop/status/settings shortcut).
+- `options.*`: Secure local storage of OpenAI API key.
 
-- Speech-to-text transcription.
-- Translation API integration for live bilingual subtitles.
+## Limitations
+
+- Can only capture Chrome tab audio.
+- Cannot capture desktop Teams native app audio.
+- API key is stored in local `chrome.storage.local`; before production release, use your own proxy server.
+- This is currently a development/test build.
