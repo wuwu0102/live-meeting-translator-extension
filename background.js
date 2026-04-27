@@ -48,7 +48,7 @@ async function ensureOffscreenDocument() {
 }
 
 async function startCapture(tabId) {
-  const { googleApiKey } = await chrome.storage.local.get('googleApiKey');
+  const { googleApiKey } = await chrome.storage.local.get(['googleApiKey']);
   if (!googleApiKey) {
     throw new Error('Missing Google API Key');
   }
@@ -61,7 +61,8 @@ async function startCapture(tabId) {
   await chrome.runtime.sendMessage({
     type: 'START_OFFSCREEN_CAPTURE',
     streamId,
-    tabId
+    tabId,
+    apiKey: googleApiKey
   });
 
   currentTabId = tabId;
