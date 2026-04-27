@@ -4,6 +4,7 @@ let audioContext = null;
 let sourceNode = null;
 let mediaRecorder = null;
 let isProcessing = false;
+let currentApiKey = null;
 
 function logStage(stage, payload) {
   if (payload !== undefined) {
@@ -23,13 +24,6 @@ async function reportError(error, tabId = activeTabId) {
   });
 }
 
-async function fetchApiKey() {
-  const { googleApiKey } = await chrome.storage.local.get('googleApiKey');
-  if (!googleApiKey) {
-    throw new Error('Missing Google API Key');
-  }
-  return googleApiKey;
-}
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -53,8 +47,11 @@ function blobToBase64(blob) {
   });
 }
 
-async function transcribeWithGoogle(base64Audio, apiKey) {
-  const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${encodeURIComponent(apiKey)}`, {
+async function transcribeWithGoogle(base64Audio) {
+  if (!currentApiKey) {
+    throw new Error('Missing Google API Key in offscreen');
+  }
+  const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${encodeURIComponent(currentApiKey)}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -90,8 +87,11 @@ function decodeHtmlEntities(text) {
   return textarea.value;
 }
 
-async function translateWithGoogle(text, apiKey) {
-  const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(apiKey)}`, {
+async function translateWithGoogle(text) {
+  if (!currentApiKey) {
+    throw new Error('Missing Google API Key in offscreen');
+  }
+  const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(currentApiKey)}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -131,16 +131,15 @@ async function processChunk(blob) {
   try {
     await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STATUS', status: 'Translating' });
 
-    const apiKey = await fetchApiKey();
     const base64Audio = await blobToBase64(blob);
-    const transcript = await transcribeWithGoogle(base64Audio, apiKey);
+    const transcript = await transcribeWithGoogle(base64Audio);
     logStage('transcribed', transcript);
 
     if (!transcript) {
       return;
     }
 
-    const translatedText = await translateWithGoogle(transcript, apiKey);
+    const translatedText = await translateWithGoogle(transcript);
     logStage('translated', translatedText);
 
     await chrome.runtime.sendMessage({
@@ -190,13 +189,19 @@ async function stopCapture() {
   }
 
   activeTabId = null;
+  currentApiKey = null;
   isProcessing = false;
   logStage('capture stopped');
 }
 
-async function startCapture(streamId, tabId) {
+async function startCapture(streamId, tabId, apiKey) {
+  if (!apiKey) {
+    throw new Error('Missing Google API Key in offscreen');
+  }
+
   await stopCapture();
   activeTabId = tabId;
+  currentApiKey = apiKey;
 
   currentStream = await navigator.mediaDevices.getUserMedia({
     audio: {
@@ -235,7 +240,7 @@ async function startCapture(streamId, tabId) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'START_OFFSCREEN_CAPTURE') {
-    startCapture(message.streamId, message.tabId)
+    startCapture(message.streamId, message.tabId, message.apiKey)
       .then(() => sendResponse({ ok: true }))
       .catch(async (error) => {
         await reportError(error, message.tabId);
